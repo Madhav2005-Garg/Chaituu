@@ -14,6 +14,7 @@ function App() {
   const [showRegister, setShowRegister] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState({});
   const [refreshFriends, setRefreshFriends] = useState(0);
+  const apiUrl = process.env.REACT_APP_API_URL;
 
   // Check authentication on mount
   useEffect(() => {
@@ -69,7 +70,10 @@ function App() {
     if (!authUser) return;
     
     console.log("Connecting status socket for:", authUser);
-    const statusSocket = new WebSocket(`ws://localhost:8000/ws/status/${authUser}/`);
+    const wsProtocol = apiUrl.startsWith("https") ? "wss" : "ws";
+    const wsBaseUrl = apiUrl.replace(/^https?/, wsProtocol);
+
+    const statusSocket = new WebSocket(`${wsBaseUrl}/ws/status/${authUser}/`);
 
     statusSocket.onopen = () => {
       console.log("Status WebSocket connected");
