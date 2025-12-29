@@ -4,6 +4,7 @@ Django settings for core project.
 
 from pathlib import Path
 from datetime import timedelta
+import os 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -14,7 +15,7 @@ SECRET_KEY = 'django-insecure-xj=_26^51vumtuc9((8d+zsvj^ty*y+adzybzxu47053ozb@71
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["https://chaitu-9ye0.onrender.com/", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["https://chaitu-9ye0.onrender.com", "localhost", "127.0.0.1"]
 CORS_ALLOW_ALL_ORIGINS = True
 # Application definition
 INSTALLED_APPS = [
@@ -97,7 +98,9 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
