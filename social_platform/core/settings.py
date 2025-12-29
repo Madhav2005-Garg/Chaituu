@@ -21,6 +21,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["chaitu-9ye0.onrender.com", "localhost", "127.0.0.1"]
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 # Application definition
 INSTALLED_APPS = [
     'daphne',  # Must be first for WebSocket support

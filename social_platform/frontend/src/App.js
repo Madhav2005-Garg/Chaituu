@@ -70,10 +70,8 @@ function App() {
     if (!authUser) return;
     
     console.log("Connecting status socket for:", authUser);
-    const wsProtocol = apiUrl.startsWith("https") ? "wss" : "ws";
-    const wsBaseUrl = apiUrl.replace(/^https?/, wsProtocol);
-
-    const statusSocket = new WebSocket(`${wsBaseUrl}/ws/status/${authUser}/`);
+    const wsUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
+    const statusSocket = new WebSocket(`${wsUrl}/ws/status/${authUser}/`);
 
     statusSocket.onopen = () => {
       console.log("Status WebSocket connected");
