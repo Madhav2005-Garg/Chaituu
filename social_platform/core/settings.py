@@ -14,7 +14,7 @@ SECRET_KEY = 'django-insecure-xj=_26^51vumtuc9((8d+zsvj^ty*y+adzybzxu47053ozb@71
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["https://chaitu-9ye0.onrender.com/", "localhost", "127.0.0.1"]
 CORS_ALLOW_ALL_ORIGINS = True
 # Application definition
 INSTALLED_APPS = [
