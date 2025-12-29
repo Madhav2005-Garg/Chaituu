@@ -8,6 +8,9 @@
 # testing
 /coverage
 node_modules/
+dist/
+build/
+.env
 # production
 /build
 
