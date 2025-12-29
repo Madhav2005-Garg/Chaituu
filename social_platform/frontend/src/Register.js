@@ -10,7 +10,7 @@ const Register = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await axios.post('http://localhost:8000/api/register/', formData);
+            await axios.post(`${process.env.REACT_APP_API_URL}/api/register/`, formData);
             alert("Account created! Welcome aboard.");
             window.location.reload();
         } catch (err) {

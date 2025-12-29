@@ -144,6 +144,7 @@ SIMPLE_JWT = {
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "https://chaituuu.vercel.app"
 ]
 
 # Channels Configuration (WebSocket)
