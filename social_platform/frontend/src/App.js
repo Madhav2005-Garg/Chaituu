@@ -69,9 +69,9 @@ function App() {
   useEffect(() => {
     if (!authUser) return;
     
-    console.log("Connecting status socket for:", authUser);
-    const wsUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
-    const statusSocket = new WebSocket(`${wsUrl}/ws/status/${authUser}/`);
+    const wsBaseUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
+    const statusSocket = new WebSocket(`${wsBaseUrl}/ws/status/${authUser}/`);
+  console.log("🔗 Status WebSocket URL:", statusSocket.url);
 
     statusSocket.onopen = () => {
       console.log("Status WebSocket connected");
