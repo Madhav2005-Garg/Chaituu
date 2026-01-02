@@ -21,6 +21,13 @@ DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = ["chaitu-9ye0.onrender.com", "localhost", "127.0.0.1"]
 
+# CSRF Trusted Origins (required for Django 4.0+ to prevent 403 errors)
+CSRF_TRUSTED_ORIGINS = [
+    "https://chaitu-9ye0.onrender.com",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
 # Application definition
 INSTALLED_APPS = [
     'daphne',  # Must be first for WebSocket support
