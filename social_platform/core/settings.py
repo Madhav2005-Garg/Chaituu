@@ -172,14 +172,34 @@ REDIS_URL = os.getenv('REDIS_URL', None)
 
 if REDIS_URL:
     # Production: Use Redis Channel Layer
-    CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {
-                "hosts": [REDIS_URL],
+    # Parse Redis URL for proper configuration
+    import re
+    redis_pattern = r'rediss?://([^:]+):([^@]+)@([^:]+):(\d+)'
+    match = re.match(redis_pattern, REDIS_URL)
+    
+    if match:
+        # URL format: redis://user:password@host:port
+        CHANNEL_LAYERS = {
+            "default": {
+                "BACKEND": "channels_redis.core.RedisChannelLayer",
+                "CONFIG": {
+                    "hosts": [{
+                        "address": f"rediss://{match.group(3)}:{match.group(4)}",
+                        "password": match.group(2),
+                    }],
+                },
             },
-        },
-    }
+        }
+    else:
+        # Fallback: treat as full URL
+        CHANNEL_LAYERS = {
+            "default": {
+                "BACKEND": "channels_redis.core.RedisChannelLayer",
+                "CONFIG": {
+                    "hosts": [REDIS_URL],
+                },
+            },
+        }
 else:
     # Local Development: Use InMemory Channel Layer
     CHANNEL_LAYERS = {
