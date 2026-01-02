@@ -56,10 +56,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         users = self.room_name.split('_')
         receiver_username = users[1] if users[0] == sender_username else users[0]
 
-        # OPTIMIZED: Broadcast IMMEDIATELY for instant delivery
+        # INSTANT BROADCAST - No waiting for anything!
         import datetime
         timestamp = datetime.datetime.now().isoformat()
         
+        # Broadcast immediately - this is fast
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -70,10 +71,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
         
-        # Save to DB in background (non-blocking)
-        # Using asyncio.create_task to not wait for DB save
-        import asyncio
-        asyncio.create_task(self.save_message(sender_username, receiver_username, message_content))
+        # Save to DB asynchronously without blocking
+        # Fire and forget - don't await this
+        self.save_message_background(sender_username, receiver_username, message_content, timestamp)
 
     # Method to send chat message to WebSocket
     async def chat_message(self, event):
@@ -97,6 +97,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'type': 'read_receipt',
             'reader': event['reader']
         }))
+    
+    # Background task to save message without blocking
+    def save_message_background(self, sender_username, receiver_username, content, timestamp):
+        """Fire and forget - saves message to DB without blocking WebSocket"""
+        import asyncio
+        from asgiref.sync import async_to_sync
+        from threading import Thread
+        
+        def save():
+            try:
+                s = User.objects.get(username=sender_username)
+                r = User.objects.get(username=receiver_username)
+                Message.objects.create(sender=s, receiver=r, content=content)
+                print(f"✅ Message saved to DB: {sender_username} -> {receiver_username}")
+            except Exception as e:
+                print(f"❌ DB save failed: {str(e)}")
+        
+        # Run in separate thread to not block
+        Thread(target=save, daemon=True).start()
 
     @database_sync_to_async
     def save_message(self, sender_username, receiver_username, content):
