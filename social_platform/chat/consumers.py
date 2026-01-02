@@ -56,25 +56,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
         users = self.room_name.split('_')
         receiver_username = users[1] if users[0] == sender_username else users[0]
 
-        # 1. Save to DB (with correct 3 parameters)
-        save_result = await self.save_message(sender_username, receiver_username, message_content)
-
-        if save_result['success']:
-            # 2. Broadcast to Group
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'chat_message',
-                    'message': message_content,
-                    'sender': sender_username,
-                    'timestamp': save_result['timestamp']
-                }
-            )
-        else:
-            # Send error back to sender
-            await self.send(text_data=json.dumps({
-                'error': save_result['error']
-            }))
+        # OPTIMIZED: Broadcast IMMEDIATELY for instant delivery
+        import datetime
+        timestamp = datetime.datetime.now().isoformat()
+        
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_message',
+                'message': message_content,
+                'sender': sender_username,
+                'timestamp': timestamp
+            }
+        )
+        
+        # Save to DB in background (non-blocking)
+        # Using asyncio.create_task to not wait for DB save
+        import asyncio
+        asyncio.create_task(self.save_message(sender_username, receiver_username, message_content))
 
     # Method to send chat message to WebSocket
     async def chat_message(self, event):
