@@ -17,8 +17,40 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        message_content = data['message']
-        sender_username = data['sender']
+        message_type = data.get('type', 'chat_message')
+        
+        # Handle typing indicator
+        if message_type == 'typing':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'typing_indicator',
+                    'sender': data.get('sender'),
+                    'typing': data.get('typing', False)
+                }
+            )
+            return
+        
+        # Handle read receipt
+        if message_type == 'read_receipt':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'read_receipt_message',
+                    'reader': data.get('sender')
+                }
+            )
+            return
+        
+        # Handle regular chat message
+        message_content = data.get('message')
+        sender_username = data.get('sender')
+        
+        if not message_content or not sender_username:
+            await self.send(text_data=json.dumps({
+                'error': 'Missing message or sender'
+            }))
+            return
 
         # Determine receiver from room name (format: user1_user2)
         users = self.room_name.split('_')
@@ -44,12 +76,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'error': save_result['error']
             }))
 
-    # Method to send message to WebSocket
+    # Method to send chat message to WebSocket
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
             'message': event['message'],
             'sender': event['sender'],
             'timestamp': event.get('timestamp')
+        }))
+    
+    # Method to send typing indicator to WebSocket
+    async def typing_indicator(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'typing',
+            'sender': event['sender'],
+            'typing': event['typing']
+        }))
+    
+    # Method to send read receipt to WebSocket
+    async def read_receipt_message(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'read_receipt',
+            'reader': event['reader']
         }))
 
     @database_sync_to_async
