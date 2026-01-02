@@ -109,7 +109,18 @@ const Chat = ({ receiverId, receiverName }) => {
         console.log("🌐 Connecting to WebSocket room:", roomName);
         
         const wsUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
-        socket.current = new WebSocket(`${wsUrl}/ws/chat/${roomName}/`);
+        const authToken = localStorage.getItem('token');
+        const wsUrlWithToken = `${wsUrl}/ws/chat/${roomName}/?token=${authToken}`;
+        
+        console.log("🔗 WebSocket URL:", wsUrlWithToken.replace(authToken, '***'));
+        socket.current = new WebSocket(wsUrlWithToken);
+        
+        socket.current.onopen = () => {
+            console.log("✅ WebSocket connected successfully");
+            setConnectionError(null);
+            setIsConnecting(false);
+        };
+        
         socket.current.onmessage = (e) => {
             const data = JSON.parse(e.data);
             console.log("📩 Data received:", data);

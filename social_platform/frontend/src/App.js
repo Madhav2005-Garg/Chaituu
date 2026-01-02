@@ -70,8 +70,9 @@ function App() {
     if (!authUser) return;
     
     const wsBaseUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
-    const statusSocket = new WebSocket(`${wsBaseUrl}/ws/status/${authUser}/`);
-  console.log("🔗 Status WebSocket URL:", statusSocket.url);
+    const authToken = localStorage.getItem('token');
+    const statusSocket = new WebSocket(`${wsBaseUrl}/ws/status/${authUser}/?token=${authToken}`);
+    console.log("🔗 Status WebSocket URL:", statusSocket.url.replace(authToken, '***'));
 
     statusSocket.onopen = () => {
       console.log("Status WebSocket connected");

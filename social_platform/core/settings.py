@@ -14,14 +14,13 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-xj=_26^51vumtuc9((8d+zsvj^ty*y+adzybzxu47053ozb@71'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-xj=_26^51vumtuc9((8d+zsvj^ty*y+adzybzxu47053ozb@71')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = ["chaitu-9ye0.onrender.com", "localhost", "127.0.0.1"]
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
+
 # Application definition
 INSTALLED_APPS = [
     'daphne',  # Must be first for WebSocket support
@@ -145,22 +144,36 @@ SIMPLE_JWT = {
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "https://chaituuu.vercel.app"
+    "https://chaituuu.vercel.app",
 ]
 
-# Channels Configuration (WebSocket)
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
-    },
-}
+CORS_ALLOW_CREDENTIALS = True
 
-# Optional: For production with Redis, uncomment and configure:
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [("127.0.0.1", 6379)],
-#         },
-#     },
-# }
+# Channels Configuration (WebSocket)
+# Use Redis in production, InMemory for local development
+REDIS_URL = os.getenv('REDIS_URL', None)
+
+if REDIS_URL:
+    # Production: Use Redis Channel Layer
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+            },
+        },
+    }
+else:
+    # Local Development: Use InMemory Channel Layer
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
+
+# WebSocket Allowed Origins (for Django Channels)
+ALLOWED_WEBSOCKET_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://chaituuu.vercel.app",
+]
