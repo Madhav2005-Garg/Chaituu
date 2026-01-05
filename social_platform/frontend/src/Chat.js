@@ -13,6 +13,7 @@ const Chat = ({ receiverId, receiverName }) => {
     const socket = useRef(null);
     const scrollRef = useRef(null);
     const typingTimeoutRef = useRef(null);
+    const pendingMessages = useRef(new Map()); // Track optimistic messages
     const authUser = localStorage.getItem('username');
 
     useEffect(() => {
@@ -122,8 +123,13 @@ const Chat = ({ receiverId, receiverName }) => {
         };
         
         socket.current.onmessage = (e) => {
+            // PROFILING: Track receive time
+            const t_receive = performance.now();
+            
             const data = JSON.parse(e.data);
-            console.log("📩 Data received:", data);
+            const dataSize = e.data.length;
+            
+            console.log(`📊 Received ${dataSize}B at t=${t_receive.toFixed(1)}ms`);
 
             if (data.type === 'read_receipt') {
                 if (data.reader !== authUser) {
@@ -150,17 +156,35 @@ const Chat = ({ receiverId, receiverName }) => {
             if (data.message && data.sender) {
                 setIsTyping(false);
                 
-                if (data.sender !== authUser) {
-                    setAllMessagesRead(false);
+                // Check if this is an ACK for our optimistic message
+                const clientMsgId = data.clientMsgId;
+                if (clientMsgId && pendingMessages.current.has(clientMsgId)) {
+                    const pendingMsg = pendingMessages.current.get(clientMsgId);
+                    const roundTrip = t_receive - pendingMsg.sendTime;
+                    console.log(`✅ ACK received: ${roundTrip.toFixed(1)}ms round-trip for ${dataSize}B msg`);
+                    
+                    // Update optimistic message status to confirmed
+                    setMessages(prev => prev.map(msg => 
+                        msg.clientMsgId === clientMsgId 
+                            ? { ...msg, status: 'sent', timestamp: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+                            : msg
+                    ));
+                    
+                    pendingMessages.current.delete(clientMsgId);
+                    return;
                 }
                 
-                setMessages((prev) => [...prev, { 
-                    sender: data.sender, 
-                    message: data.message,
-                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                }]);
-
+                // Message from other user
                 if (data.sender !== authUser) {
+                    setAllMessagesRead(false);
+                    
+                    setMessages((prev) => [...prev, { 
+                        sender: data.sender, 
+                        message: data.message,
+                        timestamp: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        status: 'received'
+                    }]);
+
                     showMessageNotification(data.sender, data.message);
                 }
             }
@@ -267,16 +291,56 @@ const Chat = ({ receiverId, receiverName }) => {
             typing: false
         }));
 
+        // PROFILING: Track send time
+        const t_send = performance.now();
+        const clientMsgId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const messageText = input;
+        
         const payload = { 
             type: 'message',
-            message: input, 
-            sender: authUser 
+            message: messageText, 
+            sender: authUser,
+            clientMsgId,  // For round-trip tracking
+            clientSendTs: Date.now()  // Unix timestamp for server
         };
         
-        console.log("📤 Sending message:", payload);
+        const payloadSize = JSON.stringify(payload).length;
+        console.log(`📤 [SEND] id=${clientMsgId} len=${payloadSize}B t=${t_send.toFixed(1)}ms`);
+        
+        // OPTIMISTIC UI: Add message immediately before server confirms
+        const optimisticMessage = {
+            sender: authUser,
+            message: messageText,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            clientMsgId,
+            status: 'sending',  // Will update to 'sent' on server ACK
+        };
+        
+        // Store in pending for ACK tracking
+        pendingMessages.current.set(clientMsgId, {
+            sendTime: t_send,
+            message: optimisticMessage
+        });
+        
+        // Show message immediately in UI
+        setMessages(prev => [...prev, optimisticMessage]);
+        
         socket.current.send(JSON.stringify(payload));
         setInput("");
         setAllMessagesRead(false);
+        
+        // Cleanup pending if no ACK after 10s
+        setTimeout(() => {
+            if (pendingMessages.current.has(clientMsgId)) {
+                console.warn(`⚠️ No ACK for message ${clientMsgId} after 10s`);
+                setMessages(prev => prev.map(msg => 
+                    msg.clientMsgId === clientMsgId 
+                        ? { ...msg, status: 'error' }
+                        : msg
+                ));
+                pendingMessages.current.delete(clientMsgId);
+            }
+        }, 10000);
     };
 
     if (isConnecting) {

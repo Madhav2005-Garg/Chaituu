@@ -171,8 +171,7 @@ CORS_ALLOW_CREDENTIALS = True
 REDIS_URL = os.getenv('REDIS_URL', None)
 
 if REDIS_URL:
-    # Production: Use Redis Channel Layer
-    # Parse Redis URL for proper configuration
+    # Production: Use Redis Channel Layer with optimizations
     import re
     redis_pattern = r'rediss?://([^:]+):([^@]+)@([^:]+):(\d+)'
     match = re.match(redis_pattern, REDIS_URL)
@@ -187,6 +186,11 @@ if REDIS_URL:
                         "address": f"rediss://{match.group(3)}:{match.group(4)}",
                         "password": match.group(2),
                     }],
+                    # OPTIMIZATIONS for large message handling
+                    "capacity": 100,  # Limit channel capacity to prevent memory bloat
+                    "expiry": 60,  # Expire messages after 60s if not consumed
+                    # Connection pool settings for better performance
+                    "symmetric_encryption_keys": [SECRET_KEY[:32]],  # Enable encryption
                 },
             },
         }
@@ -197,6 +201,8 @@ if REDIS_URL:
                 "BACKEND": "channels_redis.core.RedisChannelLayer",
                 "CONFIG": {
                     "hosts": [REDIS_URL],
+                    "capacity": 100,
+                    "expiry": 60,
                 },
             },
         }
