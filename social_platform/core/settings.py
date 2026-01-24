@@ -229,8 +229,12 @@ else:
     }
 
 # WebSocket Allowed Origins (for Django Channels)
-ALLOWED_WEBSOCKET_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://chaituuu.vercel.app",
-]
+ALLOWED_WEBSOCKET_ORIGINS = os.getenv(
+    'WEBSOCKET_ALLOWED_ORIGINS',
+    'http://localhost:3000,http://127.0.0.1:3000'
+).split(',')
+
+# Add CORS origins to WebSocket origins as well
+if 'CORS_ALLOWED_ORIGINS' in os.environ:
+    cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+    ALLOWED_WEBSOCKET_ORIGINS.extend(cors_origins)
