@@ -185,39 +185,48 @@ CORS_ALLOW_CREDENTIALS = True
 REDIS_URL = os.getenv('REDIS_URL', None)
 
 if REDIS_URL:
-    # Production: Use Redis Channel Layer with optimizations
-    import re
-    redis_pattern = r'rediss?://([^:]+):([^@]+)@([^:]+):(\d+)'
-    match = re.match(redis_pattern, REDIS_URL)
+    # Production: Use Redis with SSL support for Redis Cloud
+    import ssl
     
-    if match:
-        # URL format: redis://user:password@host:port
+    # Parse Redis URL
+    from urllib.parse import urlparse
+    redis_url_parsed = urlparse(REDIS_URL)
+    
+    # Check if using SSL (rediss://)
+    use_ssl = redis_url_parsed.scheme == 'rediss'
+    
+    if use_ssl:
+        # Redis Cloud with SSL
         CHANNEL_LAYERS = {
             "default": {
                 "BACKEND": "channels_redis.core.RedisChannelLayer",
                 "CONFIG": {
                     "hosts": [{
-                        "address": f"rediss://{match.group(3)}:{match.group(4)}",
-                        "password": match.group(2),
+                        "address": (redis_url_parsed.hostname, redis_url_parsed.port or 6379),
+                        "password": redis_url_parsed.password,
+                        "ssl": True,
+                        "ssl_cert_reqs": None,  # Don't verify SSL certificate
                     }],
-                    # OPTIMIZATIONS for large message handling
-                    "capacity": 100,  # Limit channel capacity to prevent memory bloat
-                    "expiry": 60,  # Expire messages after 60s if not consumed
-                    # Connection pool settings for better performance
-                    "symmetric_encryption_keys": [SECRET_KEY[:32]],  # Enable encryption
+                    "capacity": 100,
+                    "expiry": 60,
                 },
             },
         }
     else:
-        # Fallback: treat as full URL
+        # Standard Redis without SSL
         CHANNEL_LAYERS = {
             "default": {
                 "BACKEND": "channels_redis.core.RedisChannelLayer",
                 "CONFIG": {
-                    "hosts": [REDIS_URL],
+                    "hosts": [{
+                        "address": (redis_url_parsed.hostname, redis_url_parsed.port or 6379),
+                        "password": redis_url_parsed.password,
+                    }],
                     "capacity": 100,
                     "expiry": 60,
                 },
+            },
+        }
             },
         }
 else:
