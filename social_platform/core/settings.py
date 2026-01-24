@@ -227,8 +227,6 @@ if REDIS_URL:
                 },
             },
         }
-            },
-        }
 else:
     # Local Development: Use InMemory Channel Layer
     CHANNEL_LAYERS = {
