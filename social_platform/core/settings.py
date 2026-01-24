@@ -186,15 +186,20 @@ REDIS_URL = os.getenv('REDIS_URL', None)
 
 if REDIS_URL:
     # Production: Use Redis Channel Layer
-    # For Redis Cloud with SSL (rediss://), pass the URL directly with ssl_cert_reqs=None
+    # For Redis Cloud with SSL (rediss://), create proper SSL context
     if REDIS_URL.startswith('rediss://'):
+        import ssl
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        
         CHANNEL_LAYERS = {
             "default": {
                 "BACKEND": "channels_redis.core.RedisChannelLayer",
                 "CONFIG": {
                     "hosts": [{
                         "address": REDIS_URL,
-                        "ssl_cert_reqs": None,  # Don't verify SSL certificate for Redis Cloud
+                        "ssl": ssl_context,  # Pass SSL context object
                     }],
                     "capacity": 100,
                     "expiry": 60,
