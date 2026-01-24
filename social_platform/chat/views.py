@@ -3,7 +3,7 @@ from django.db.models import Q
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from base.models import Message  # FIXED: Import from base.models instead of .models
+from .models import Message  # Import from chat.models (same app)
 
 # 1. User Search
 @api_view(['GET'])

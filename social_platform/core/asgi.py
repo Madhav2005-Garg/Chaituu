@@ -38,7 +38,6 @@ from channels.auth import AuthMiddlewareStack
 from django.core.asgi import get_asgi_application
 
 # Import routing and middleware AFTER django.setup()
-import base.routing
 import chat.routing
 from chat.middleware import TokenAuthMiddlewareStack
 
