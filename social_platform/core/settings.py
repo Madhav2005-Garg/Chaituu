@@ -185,27 +185,16 @@ CORS_ALLOW_CREDENTIALS = True
 REDIS_URL = os.getenv('REDIS_URL', None)
 
 if REDIS_URL:
-    # Production: Use Redis with SSL support for Redis Cloud
-    import ssl
-    
-    # Parse Redis URL
-    from urllib.parse import urlparse
-    redis_url_parsed = urlparse(REDIS_URL)
-    
-    # Check if using SSL (rediss://)
-    use_ssl = redis_url_parsed.scheme == 'rediss'
-    
-    if use_ssl:
-        # Redis Cloud with SSL
+    # Production: Use Redis Channel Layer
+    # For Redis Cloud with SSL (rediss://), pass the URL directly with ssl_cert_reqs=None
+    if REDIS_URL.startswith('rediss://'):
         CHANNEL_LAYERS = {
             "default": {
                 "BACKEND": "channels_redis.core.RedisChannelLayer",
                 "CONFIG": {
                     "hosts": [{
-                        "address": (redis_url_parsed.hostname, redis_url_parsed.port or 6379),
-                        "password": redis_url_parsed.password,
-                        "ssl": True,
-                        "ssl_cert_reqs": None,  # Don't verify SSL certificate
+                        "address": REDIS_URL,
+                        "ssl_cert_reqs": None,  # Don't verify SSL certificate for Redis Cloud
                     }],
                     "capacity": 100,
                     "expiry": 60,
@@ -218,10 +207,7 @@ if REDIS_URL:
             "default": {
                 "BACKEND": "channels_redis.core.RedisChannelLayer",
                 "CONFIG": {
-                    "hosts": [{
-                        "address": (redis_url_parsed.hostname, redis_url_parsed.port or 6379),
-                        "password": redis_url_parsed.password,
-                    }],
+                    "hosts": [REDIS_URL],
                     "capacity": 100,
                     "expiry": 60,
                 },
